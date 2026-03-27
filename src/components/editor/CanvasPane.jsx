@@ -4,8 +4,6 @@ import {
   Background,
   Controls,
   MiniMap,
-  useNodesState,
-  useEdgesState,
   applyNodeChanges,
   applyEdgeChanges,
 } from '@xyflow/react'
@@ -19,7 +17,7 @@ import { Sparkles } from 'lucide-react'
 const nodeTypes = { custom: CustomNode }
 
 const defaultEdgeOptions = {
-  style: { stroke: '#6366f1', strokeWidth: 2 },
+  style: { stroke: '#c85a3a', strokeWidth: 2 },
   type: 'smoothstep',
 }
 
@@ -58,12 +56,12 @@ export default function CanvasPane() {
         ...e,
         type: 'smoothstep',
         style: {
-          stroke: '#6366f1',
+          stroke: '#c85a3a',
           strokeWidth: 2,
           ...(e.style || {}),
         },
-        labelStyle: { fill: '#94a3b8', fontSize: 10, fontFamily: 'Inter' },
-        labelBgStyle: { fill: '#0f172a', fillOpacity: 0.8 },
+        labelStyle: { fill: '#7a756e', fontSize: 10, fontFamily: 'Inter' },
+        labelBgStyle: { fill: '#f5efe6', fillOpacity: 0.9 },
         labelBgPadding: [4, 2],
         labelBgBorderRadius: 4,
       })),
@@ -71,7 +69,7 @@ export default function CanvasPane() {
   )
 
   return (
-    <div className="flex-1 flex flex-col relative bg-surface-950 overflow-hidden">
+    <div className="flex-1 flex flex-col relative bg-surface-50 overflow-hidden">
       {/* Variant tabs */}
       <VariantTabs />
 
@@ -88,32 +86,29 @@ export default function CanvasPane() {
             fitView
             fitViewOptions={{ padding: 0.3 }}
             proOptions={{ hideAttribution: true }}
-            className="react-flow-dark"
+            className="react-flow-zen"
           >
             <Background
               variant="dots"
               gap={20}
               size={1}
-              color="#6366f133"
+              color="#cdc6ba44"
             />
-            <Controls
-              className="!bg-surface-800/80 !border-surface-700 !rounded-xl !shadow-lg [&>button]:!bg-surface-800 [&>button]:!border-surface-700 [&>button]:!text-surface-300 [&>button:hover]:!bg-surface-700"
-            />
+            <Controls />
             <MiniMap
-              nodeColor={(n) => n.data?.color || '#6366f1'}
-              maskColor="rgba(2,6,23,0.85)"
-              className="!bg-surface-900 !border-surface-700 !rounded-xl"
+              nodeColor={(n) => n.data?.color || '#c85a3a'}
+              maskColor="rgba(245,239,230,0.85)"
             />
           </ReactFlow>
         ) : (
           /* Empty state */
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center animate-fade-in">
-              <div className="w-20 h-20 rounded-2xl bg-surface-800/50 flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-10 h-10 text-surface-700" />
+              <div className="w-20 h-20 rounded-2xl bg-surface-200 flex items-center justify-center mx-auto mb-6">
+                <Sparkles className="w-10 h-10 text-surface-400" />
               </div>
               <h3 className="text-xl font-semibold text-surface-500 mb-2">No diagram yet</h3>
-              <p className="text-surface-600 text-sm max-w-sm">
+              <p className="text-surface-400 text-sm max-w-sm">
                 Type a prompt in the chat panel to generate your first AI-powered diagram.
               </p>
             </div>
@@ -122,13 +117,13 @@ export default function CanvasPane() {
 
         {/* Loading overlay */}
         {isGenerating && (
-          <div className="absolute inset-0 bg-surface-950/80 flex items-center justify-center z-20 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-surface-50/80 flex items-center justify-center z-20 backdrop-blur-sm">
             <div className="text-center animate-fade-in">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-600 to-accent-500 flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
+              <div className="w-16 h-16 rounded-2xl bg-primary-500 flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
                 <Sparkles className="w-8 h-8 text-white" />
               </div>
-              <p className="text-surface-300 font-medium">AI is generating your diagram…</p>
-              <p className="text-surface-600 text-sm mt-1">Check the chat for thinking steps</p>
+              <p className="text-surface-700 font-medium">AI is generating your diagram…</p>
+              <p className="text-surface-400 text-sm mt-1">Check the chat for thinking steps</p>
             </div>
           </div>
         )}

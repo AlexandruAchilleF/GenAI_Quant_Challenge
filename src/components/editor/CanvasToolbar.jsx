@@ -33,19 +33,19 @@ export default function CanvasToolbar() {
 
   const handleSave = () => {
     if (!saved) {
-      likeDiagram(variant) // Also saves to preferences
+      likeDiagram(variant)
       setSaved(true)
     }
   }
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-surface-900/90 border border-surface-700/50 backdrop-blur-md shadow-xl">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-white/90 border border-surface-300 backdrop-blur-md shadow-lg shadow-surface-400/10">
       <button
         onClick={handleLike}
         className={`p-2 rounded-xl transition-all ${
           liked
-            ? 'bg-green-500/20 text-green-400'
-            : 'text-surface-400 hover:text-green-400 hover:bg-green-500/10'
+            ? 'bg-success-400/20 text-success-500'
+            : 'text-surface-400 hover:text-success-500 hover:bg-success-400/10'
         }`}
         title="Like this variant"
       >
@@ -56,22 +56,22 @@ export default function CanvasToolbar() {
         onClick={handleDislike}
         className={`p-2 rounded-xl transition-all ${
           disliked
-            ? 'bg-red-500/20 text-red-400'
-            : 'text-surface-400 hover:text-red-400 hover:bg-red-500/10'
+            ? 'bg-error-400/20 text-error-500'
+            : 'text-surface-400 hover:text-error-500 hover:bg-error-400/10'
         }`}
         title="Dislike this variant"
       >
         <ThumbsDown className="w-4 h-4" />
       </button>
 
-      <div className="w-px h-5 bg-surface-700 mx-0.5" />
+      <div className="w-px h-5 bg-surface-300 mx-0.5" />
 
       <button
         onClick={handleSave}
         className={`p-2 rounded-xl transition-all ${
           saved
-            ? 'bg-yellow-500/20 text-yellow-400'
-            : 'text-surface-400 hover:text-yellow-400 hover:bg-yellow-500/10'
+            ? 'bg-warning-400/20 text-warning-500'
+            : 'text-surface-400 hover:text-warning-500 hover:bg-warning-400/10'
         }`}
         title="Save to favorites"
       >

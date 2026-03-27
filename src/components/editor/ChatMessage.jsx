@@ -8,8 +8,8 @@ export default function ChatMessage({ message, onQuickReply, isStreamingThinking
   if (role === 'system') {
     return (
       <div className="flex items-start gap-2 px-4 py-2 animate-fade-in">
-        <Info className="w-3.5 h-3.5 text-surface-500 mt-0.5 flex-shrink-0" />
-        <p className="text-xs text-surface-500 italic">{content}</p>
+        <Info className="w-3.5 h-3.5 text-surface-400 mt-0.5 flex-shrink-0" />
+        <p className="text-xs text-surface-400 italic">{content}</p>
       </div>
     )
   }
@@ -17,17 +17,17 @@ export default function ChatMessage({ message, onQuickReply, isStreamingThinking
   const isUser = role === 'user'
 
   return (
-    <div className={`flex gap-3 px-4 py-3 animate-fade-in ${isUser ? '' : 'bg-surface-800/20'}`}>
+    <div className={`flex gap-3 px-4 py-3 animate-fade-in ${isUser ? '' : 'bg-surface-100/60'}`}>
       {/* Avatar */}
       <div
-        className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
           isUser
-            ? 'bg-surface-700'
-            : 'bg-gradient-to-br from-primary-500 to-accent-500'
+            ? 'bg-surface-300'
+            : 'bg-primary-500'
         }`}
       >
         {isUser ? (
-          <User className="w-3.5 h-3.5 text-surface-300" />
+          <User className="w-3.5 h-3.5 text-surface-600" />
         ) : (
           <Sparkles className="w-3.5 h-3.5 text-white" />
         )}
@@ -35,7 +35,7 @@ export default function ChatMessage({ message, onQuickReply, isStreamingThinking
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-surface-400 mb-1">
+        <p className="text-xs font-semibold text-surface-500 mb-1">
           {isUser ? 'You' : 'DiagramAI'}
         </p>
 
@@ -46,7 +46,7 @@ export default function ChatMessage({ message, onQuickReply, isStreamingThinking
 
         {/* Message content */}
         {content && (
-          <p className="text-sm text-surface-200 leading-relaxed whitespace-pre-wrap">{content}</p>
+          <p className="text-sm text-surface-800 leading-relaxed whitespace-pre-wrap">{content}</p>
         )}
 
         {/* Quick reply buttons (for disambiguation) */}

@@ -33,7 +33,7 @@ function CustomNode({ id, data, selected }) {
     [handleBlur, data.label]
   )
 
-  const color = data.color || '#6366f1'
+  const color = data.color || '#c85a3a'
   const isTable = data.shape === 'table'
   const isDiamond = data.shape === 'diamond'
   const isDatabase = data.shape === 'database'
@@ -43,13 +43,13 @@ function CustomNode({ id, data, selected }) {
   if (isTable) {
     return (
       <div
-        className={`rounded-lg border overflow-hidden transition-shadow ${
+        className={`rounded-xl border overflow-hidden transition-shadow ${
           selected ? 'shadow-lg shadow-primary-500/20 ring-2 ring-primary-400/50' : ''
         }`}
         style={{ borderColor: color, minWidth: 160 }}
         onDoubleClick={handleDoubleClick}
       >
-        <Handle type="target" position={Position.Top} className="!bg-surface-600 !w-2 !h-2 !border-surface-800" />
+        <Handle type="target" position={Position.Top} className="!bg-surface-400 !w-2 !h-2 !border-surface-200" />
 
         {/* Header */}
         <div className="px-3 py-1.5 text-xs font-bold text-white" style={{ backgroundColor: color }}>
@@ -69,14 +69,14 @@ function CustomNode({ id, data, selected }) {
 
         {/* Fields */}
         {data.fields && (
-          <div className="bg-surface-850 px-3 py-1.5 space-y-0.5">
+          <div className="bg-surface-100 px-3 py-1.5 space-y-0.5">
             {data.fields.map((f, i) => (
-              <div key={i} className="text-[10px] text-surface-400 font-mono">{f}</div>
+              <div key={i} className="text-[10px] text-surface-600 font-mono">{f}</div>
             ))}
           </div>
         )}
 
-        <Handle type="source" position={Position.Bottom} className="!bg-surface-600 !w-2 !h-2 !border-surface-800" />
+        <Handle type="source" position={Position.Bottom} className="!bg-surface-400 !w-2 !h-2 !border-surface-200" />
       </div>
     )
   }
@@ -86,12 +86,12 @@ function CustomNode({ id, data, selected }) {
     return (
       <div
         className={`relative flex items-center justify-center text-center transition-shadow ${
-          selected ? 'drop-shadow-[0_0_8px_rgba(99,102,241,0.4)]' : ''
+          selected ? 'drop-shadow-[0_0_8px_rgba(200,90,58,0.3)]' : ''
         }`}
         style={{ minWidth: 130, minHeight: 56 }}
         onDoubleClick={handleDoubleClick}
       >
-        <Handle type="target" position={Position.Top} className="!bg-surface-600 !w-2 !h-2 !border-surface-800" />
+        <Handle type="target" position={Position.Top} className="!bg-surface-400 !w-2 !h-2 !border-surface-200" />
 
         {/* Cylinder SVG */}
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 130 60" preserveAspectRatio="none">
@@ -115,7 +115,7 @@ function CustomNode({ id, data, selected }) {
           )}
         </span>
 
-        <Handle type="source" position={Position.Bottom} className="!bg-surface-600 !w-2 !h-2 !border-surface-800" />
+        <Handle type="source" position={Position.Bottom} className="!bg-surface-400 !w-2 !h-2 !border-surface-200" />
       </div>
     )
   }
@@ -125,17 +125,17 @@ function CustomNode({ id, data, selected }) {
     return (
       <div
         className={`relative flex items-center justify-center transition-shadow ${
-          selected ? 'drop-shadow-[0_0_8px_rgba(99,102,241,0.4)]' : ''
+          selected ? 'drop-shadow-[0_0_8px_rgba(200,90,58,0.3)]' : ''
         }`}
         style={{ width: 100, height: 100 }}
         onDoubleClick={handleDoubleClick}
       >
-        <Handle type="target" position={Position.Top} className="!bg-surface-600 !w-2 !h-2 !border-surface-800 !top-0" />
+        <Handle type="target" position={Position.Top} className="!bg-surface-400 !w-2 !h-2 !border-surface-200 !top-0" />
 
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
           <polygon
             points="50,4 96,50 50,96 4,50"
-            fill="rgba(30,41,59,0.9)"
+            fill="#ebe5db"
             stroke={color}
             strokeWidth="2"
           />
@@ -157,8 +157,8 @@ function CustomNode({ id, data, selected }) {
           )}
         </span>
 
-        <Handle type="source" position={Position.Bottom} className="!bg-surface-600 !w-2 !h-2 !border-surface-800 !bottom-0" />
-        <Handle type="source" position={Position.Right} id="right" className="!bg-surface-600 !w-2 !h-2 !border-surface-800" />
+        <Handle type="source" position={Position.Bottom} className="!bg-surface-400 !w-2 !h-2 !border-surface-200 !bottom-0" />
+        <Handle type="source" position={Position.Right} id="right" className="!bg-surface-400 !w-2 !h-2 !border-surface-200" />
       </div>
     )
   }

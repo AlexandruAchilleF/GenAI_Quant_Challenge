@@ -9,7 +9,7 @@ export default function QuickReplyButtons({ questions = [], onSelect }) {
           <button
             key={i}
             onClick={() => onSelect?.(q)}
-            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-primary-500/10 text-primary-300 border border-primary-500/20 hover:bg-primary-500/20 hover:border-primary-500/40 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary-50 text-primary-600 border border-primary-200 hover:bg-primary-100 hover:border-primary-300 transition-all active:scale-95"
           >
             {q}
           </button>
