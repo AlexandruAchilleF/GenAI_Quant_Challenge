@@ -1,6 +1,6 @@
 # DiagramAI — AI-Powered Diagram Generator
 
-> Generate beautiful architecture diagrams, flowcharts, ERDs, and more from natural language descriptions using AI.
+> Generate beautiful architecture diagrams and flowcharts from natural language descriptions using AI.
 
 ## Tech Stack
 
@@ -20,9 +20,9 @@ Open [http://localhost:5173](http://localhost:5173)
 
 ## Features
 
-- 🤖 AI-powered diagram generation from natural language
-- 📊 Multiple diagram types: architecture, flowcharts, ERDs
-- 🎨 Beautiful dark theme with glassmorphism design
-- 📤 Export diagrams as SVG
-- ⚡ Quick prompt templates
-- 📱 Responsive design
+-  AI-powered diagram generation from natural language
+-  Multiple diagram types: architecture, flowcharts
+-  Beautiful theme
+-  Export diagrams as SVG
+-  Quick prompt templates
+-  Responsive design
