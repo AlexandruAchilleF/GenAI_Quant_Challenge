@@ -183,3 +183,58 @@
 .animate-fade-in {
   animation: fade-in 0.4s ease-out forwards;
 }
+
+/* ── Thinking step animation ── */
+@keyframes thinking-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.thinking-step-enter {
+  animation: thinking-step-in 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+/* ── React Flow dark theme overrides ── */
+.react-flow-dark {
+  --xy-background-color: transparent;
+  --xy-node-border-radius: 12px;
+}
+
+.react-flow-dark .react-flow__minimap {
+  background: var(--color-surface-900);
+  border: 1px solid var(--color-surface-700);
+  border-radius: 12px;
+}
+
+.react-flow-dark .react-flow__controls {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid var(--color-surface-700);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.react-flow-dark .react-flow__controls button {
+  background: transparent;
+  border-color: var(--color-surface-700);
+  color: var(--color-surface-300);
+}
+
+.react-flow-dark .react-flow__controls button:hover {
+  background: var(--color-surface-700);
+}
+
+.react-flow-dark .react-flow__edge-path {
+  stroke: var(--color-primary-500);
+}
+
+.react-flow-dark .react-flow__handle {
+  background: var(--color-surface-600);
+  border-color: var(--color-surface-800);
+}
