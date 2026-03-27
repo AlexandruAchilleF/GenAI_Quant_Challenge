@@ -17,7 +17,7 @@ This repository is currently a frontend-first prototype with local AI integratio
 
 - AI generation is implemented through the Ollama HTTP API.
 - Authentication is mocked in the frontend with Zustand and `localStorage`.
-- `supabase/schema.sql` is included as a backend/schema reference, but Supabase is not wired into the running app.
+- `supabase/schema.sql` is included as a backend/schema reference, but Supabase is not wired into the running app. 
 - Diagram preferences are collected locally only.
 - The codebase is optimized around Mermaid output, not React Flow node editing.
 
