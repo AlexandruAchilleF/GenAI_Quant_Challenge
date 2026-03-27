@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+const OLLAMA_MODEL = 'glm-4.7-flash'
 
 const SYSTEM_PROMPT = `You are a Mermaid.js diagram code generator. Your ONLY job is to output raw, valid Mermaid.js syntax.
 
@@ -19,33 +19,39 @@ STRICT RULES — FOLLOW EVERY ONE:
 REMEMBER: Your entire response must be ONLY valid Mermaid.js code. No prose. No markdown. No backticks.`
 
 /**
- * Calls the Gemini API to generate Mermaid.js diagram code from a user prompt.
+ * Calls a local Ollama instance to generate Mermaid.js diagram code from a user prompt.
  *
  * @param {string} userPrompt — The user's natural language description of the diagram.
  * @returns {Promise<string>} — Raw, cleaned Mermaid.js code.
  * @throws {Error} — If the API call fails or returns empty content.
  */
 export async function generateMermaidDiagram(userPrompt) {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  const baseUrl = import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434'
 
-  if (!apiKey) {
+  const response = await fetch(`${baseUrl}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: OLLAMA_MODEL,
+      system: SYSTEM_PROMPT,
+      prompt: userPrompt,
+      stream: false,
+    }),
+  })
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '')
     throw new Error(
-      'Gemini API key not configured. Please set VITE_GEMINI_API_KEY in your .env file.'
+      `Ollama request failed (${response.status}): ${errBody || response.statusText}. ` +
+      `Make sure Ollama is running and the "${OLLAMA_MODEL}" model is pulled.`
     )
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
-    systemInstruction: SYSTEM_PROMPT,
-  })
-
-  const result = await model.generateContent(userPrompt)
-  const response = result.response
-  let text = response.text()
+  const data = await response.json()
+  let text = data.response || ''
 
   if (!text || text.trim().length === 0) {
-    throw new Error('Gemini returned an empty response. Please try a different prompt.')
+    throw new Error('Ollama returned an empty response. Please try a different prompt.')
   }
 
   // Safety net: strip any residual markdown fences the model might have added
