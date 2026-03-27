@@ -3,16 +3,39 @@ import {
   Sparkles,
   Download,
   ChevronLeft,
-  PanelLeftClose,
-  PanelLeft,
+  ChevronRight,
+  Briefcase,
+  User,
+  UserCircle,
+  LogOut,
 } from 'lucide-react'
 import { useState } from 'react'
 
 import ChatPane from '../components/editor/ChatPane'
 import CanvasPane from '../components/editor/CanvasPane'
+import AuthModal from '../components/AuthModal'
+import useAuthStore from '../store/authStore'
+
+const ROLE_CONFIG = {
+  work: { label: 'Work', icon: Briefcase, color: 'bg-primary-500 text-white' },
+  normal: { label: 'Normal', icon: User, color: 'bg-surface-700 text-white' },
+  guest: { label: 'Guest', icon: UserCircle, color: 'bg-surface-400 text-white' },
+}
 
 export default function EditorPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isChatOpen, setIsChatOpen] = useState(true)
+
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const userRole = useAuthStore((s) => s.userRole)
+  const currentUser = useAuthStore((s) => s.currentUser)
+  const logout = useAuthStore((s) => s.logout)
+
+  // Show auth modal if user is not authenticated
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const showAuthPrompt = !isAuthenticated && !authModalOpen
+
+  const roleCfg = userRole ? ROLE_CONFIG[userRole] : null
+  const RoleIcon = roleCfg?.icon
 
   return (
     <div className="h-screen flex flex-col bg-surface-50 overflow-hidden">
@@ -34,14 +57,30 @@ export default function EditorPage() {
 
         {/* Toolbar right */}
         <div className="flex items-center gap-2">
-          {/* Sidebar toggle */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg text-surface-500 hover:text-surface-900 hover:bg-surface-200 transition-all"
-            title={sidebarOpen ? 'Hide chat' : 'Show chat'}
-          >
-            {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
-          </button>
+          {/* Role badge */}
+          {isAuthenticated && roleCfg && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-200/60 border border-surface-300">
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${roleCfg.color}`}>
+                {RoleIcon && <RoleIcon className="w-3 h-3" />}
+                {roleCfg.label}
+              </span>
+              <span className="text-xs text-surface-600 font-medium max-w-[120px] truncate hidden sm:inline">
+                {currentUser?.email || 'Guest'}
+              </span>
+            </div>
+          )}
+
+          {/* Logout (if authenticated) */}
+          {isAuthenticated && (
+            <button
+              id="editor-logout"
+              onClick={logout}
+              className="p-2 rounded-lg text-surface-500 hover:text-surface-900 hover:bg-surface-200 transition-all"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
 
           <button
             id="export-btn"
@@ -54,21 +93,65 @@ export default function EditorPage() {
       </header>
 
       {/* Main editor area — split pane */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Chat pane (left) */}
         <aside
-          className={`${
-            sidebarOpen ? 'w-[380px] min-w-[320px]' : 'w-0'
-          } flex-shrink-0 border-r border-surface-300 transition-all duration-300 overflow-hidden`}
+          id="chat-sidebar"
+          className="flex-shrink-0 border-r border-surface-300 overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ width: isChatOpen ? 380 : 0, minWidth: isChatOpen ? 320 : 0 }}
         >
           <div className="w-[380px] h-full">
             <ChatPane />
           </div>
         </aside>
 
-        {/* Canvas pane (right) */}
+        {/* Floating sidebar toggle button — always visible */}
+        <button
+          id="sidebar-toggle"
+          onClick={() => setIsChatOpen((prev) => !prev)}
+          className="absolute z-40 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-12 rounded-r-lg bg-surface-200/90 hover:bg-surface-300 border border-l-0 border-surface-300 text-surface-500 hover:text-surface-900 shadow-sm backdrop-blur-sm transition-all duration-300 ease-in-out"
+          style={{ left: isChatOpen ? 380 : 0 }}
+          title={isChatOpen ? 'Collapse chat' : 'Expand chat'}
+        >
+          {isChatOpen
+            ? <ChevronLeft className="w-3.5 h-3.5" />
+            : <ChevronRight className="w-3.5 h-3.5" />
+          }
+        </button>
+
+        {/* Canvas pane (right) — fills remaining space */}
         <CanvasPane />
+
+        {/* Auth prompt overlay for unauthenticated users */}
+        {showAuthPrompt && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-surface-50/90 backdrop-blur-sm">
+            <div className="text-center glass rounded-2xl p-8 max-w-sm mx-4 glow-primary animate-slide-up">
+              <div className="w-14 h-14 rounded-2xl bg-primary-500 flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-surface-900 mb-2">Sign in to get started</h3>
+              <p className="text-sm text-surface-500 mb-6">
+                Login or create an account to generate AI-powered diagrams. Or continue as a guest for a quick try.
+              </p>
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold text-sm hover:from-primary-500 hover:to-primary-400 transition-all shadow-md shadow-primary-600/20 mb-3"
+              >
+                Login / Sign Up
+              </button>
+              <button
+                onClick={() => useAuthStore.getState().continueAsGuest()}
+                className="w-full py-3 rounded-xl border-2 border-surface-300 bg-white text-surface-700 font-semibold text-sm hover:border-surface-400 hover:bg-surface-100 transition-all"
+              >
+                Continue as Guest
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   )
 }
