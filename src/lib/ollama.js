@@ -78,7 +78,11 @@ export async function generateDiagramJSON(userPrompt) {
   }
 
   const data = await response.json()
+  // glm-4.7-flash may return JSON in `thinking` instead of `response`
   let text = (data.response || '').trim()
+  if (!text && data.thinking) {
+    text = (typeof data.thinking === 'string' ? data.thinking : JSON.stringify(data.thinking)).trim()
+  }
 
   if (!text) {
     throw new Error('Ollama returned an empty response. Please try a different prompt.')
