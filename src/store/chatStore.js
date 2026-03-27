@@ -3,7 +3,7 @@ import { create } from 'zustand'
 let msgId = 0
 const genId = () => `msg-${++msgId}-${Date.now()}`
 
-const useChatStore = create((set, get) => ({
+const useChatStore = create((set) => ({
   messages: [],
   isThinking: false,
   currentThinkingSteps: [],

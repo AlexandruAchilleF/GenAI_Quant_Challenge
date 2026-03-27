@@ -1,44 +1,43 @@
-import { useEffect, useRef, useState, useId } from 'react'
+import { useEffect, useId, useState } from 'react'
 import mermaid from 'mermaid'
 
-// Initialize Mermaid with dark theme matching the app's design
 mermaid.initialize({
   startOnLoad: false,
-  theme: 'dark',
+  theme: 'base',
   themeVariables: {
-    // Background
-    mainBkg: '#1e293b',
-    nodeBorder: '#6366f1',
-    // Primary colors
-    primaryColor: '#4f46e5',
-    primaryTextColor: '#f1f5f9',
-    primaryBorderColor: '#6366f1',
-    // Secondary
-    secondaryColor: '#0891b2',
-    secondaryTextColor: '#f1f5f9',
-    secondaryBorderColor: '#22d3ee',
-    // Tertiary
-    tertiaryColor: '#1e293b',
-    tertiaryTextColor: '#94a3b8',
-    tertiaryBorderColor: '#334155',
-    // Lines & text
-    lineColor: '#6366f1',
-    textColor: '#e2e8f0',
-    // Flowchart
-    nodeTextColor: '#f1f5f9',
-    // Fonts
+    primaryColor: '#fbe8e0',
+    primaryTextColor: '#2d2a26',
+    primaryBorderColor: '#c85a3a',
+    secondaryColor: '#ebe5db',
+    secondaryTextColor: '#2d2a26',
+    secondaryBorderColor: '#a9a298',
+    tertiaryColor: '#fffdf8',
+    tertiaryTextColor: '#2d2a26',
+    tertiaryBorderColor: '#cdc6ba',
+    lineColor: '#7a756e',
+    textColor: '#2d2a26',
+    background: '#fffdf8',
+    mainBkg: '#fffdf8',
+    nodeBorder: '#c85a3a',
+    clusterBkg: '#f5efe6',
+    clusterBorder: '#cdc6ba',
     fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
     fontSize: '14px',
-    // Background
-    background: '#020617',
-    // ER Diagram
-    attributeBackgroundColorEven: '#1e293b',
-    attributeBackgroundColorOdd: '#172032',
+    actorBkg: '#fbe8e0',
+    actorBorder: '#c85a3a',
+    actorTextColor: '#2d2a26',
+    signalColor: '#5c5851',
+    signalTextColor: '#2d2a26',
+    labelBoxBkgColor: '#fffdf8',
+    labelBoxBorderColor: '#cdc6ba',
+    attributeBackgroundColorEven: '#fffaf3',
+    attributeBackgroundColorOdd: '#f5efe6',
   },
   flowchart: {
     htmlLabels: true,
     curve: 'basis',
-    padding: 15,
+    padding: 20,
+    useMaxWidth: true,
   },
   sequence: {
     actorMargin: 50,
@@ -52,50 +51,32 @@ mermaid.initialize({
   securityLevel: 'loose',
 })
 
-/**
- * MermaidRenderer — renders Mermaid.js code into an SVG diagram.
- *
- * @param {Object} props
- * @param {string} props.code — Raw Mermaid.js syntax to render.
- * @param {function} props.onError — Callback invoked with an error message string when parsing fails.
- */
 export default function MermaidRenderer({ code, onError }) {
-  const containerRef = useRef(null)
   const [svgContent, setSvgContent] = useState('')
-  const [hasError, setHasError] = useState(false)
   const uniqueId = useId()
+  const normalizedCode = code?.trim() || ''
 
   useEffect(() => {
-    if (!code) {
-      setSvgContent('')
-      setHasError(false)
-      return
-    }
+    if (!normalizedCode) return undefined
 
     let cancelled = false
 
     async function renderDiagram() {
       try {
-        // Generate a unique ID for this render (Mermaid requires unique IDs)
         const diagramId = `mermaid-${uniqueId.replace(/:/g, '')}-${Date.now()}`
-
-        // Validate syntax first
-        await mermaid.parse(code)
-
-        // Render the diagram
-        const { svg } = await mermaid.render(diagramId, code)
+        await mermaid.parse(normalizedCode)
+        const { svg } = await mermaid.render(diagramId, normalizedCode)
 
         if (!cancelled) {
           setSvgContent(svg)
-          setHasError(false)
+          onError?.('')
         }
-      } catch (err) {
-        console.error('Mermaid render error:', err)
+      } catch (error) {
+        console.error('Mermaid render error:', error)
         if (!cancelled) {
-          setHasError(true)
           setSvgContent('')
           onError?.(
-            err.message || 'Failed to parse the generated Mermaid diagram.'
+            error.message || 'Failed to parse the generated Mermaid diagram.'
           )
         }
       }
@@ -106,14 +87,13 @@ export default function MermaidRenderer({ code, onError }) {
     return () => {
       cancelled = true
     }
-  }, [code, uniqueId, onError])
+  }, [normalizedCode, uniqueId, onError])
 
-  if (hasError || !svgContent) return null
+  if (!normalizedCode || !svgContent) return null
 
   return (
     <div
       id="mermaid-output"
-      ref={containerRef}
       className="w-full h-full flex items-center justify-center p-8 [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:w-auto [&_svg]:h-auto"
       dangerouslySetInnerHTML={{ __html: svgContent }}
     />
