@@ -17,7 +17,7 @@ const steps = [
     num: '03',
     icon: PenTool,
     title: 'Refine & Export',
-    description: 'Fine-tune on the interactive canvas — move nodes, edit labels, change colors. Then export as SVG, PNG, or share a link.',
+    description: 'Ask for revisions in plain English, compare Mermaid variants, then export the rendered result as SVG.',
   },
 ]
 

@@ -1,60 +1,146 @@
-const OLLAMA_MODEL = 'glm-4.7-flash'
+const OLLAMA_MODEL = import.meta.env.VITE_OLLAMA_MODEL || 'glm-4.7-flash'
 
-const SYSTEM_PROMPT = `You are an AI diagram generator. You output ONLY valid JSON — no prose, no markdown, no explanations.
+const GENERATE_SYSTEM_PROMPT = `You generate Mermaid.js diagrams.
 
-Your response must be a JSON object with this exact structure:
+Return ONLY valid JSON with this exact structure:
 {
   "variants": [
     {
-      "label": "Short descriptive label for this layout",
-      "nodes": [
-        {
-          "id": "unique_id",
-          "type": "custom",
-          "position": { "x": 0, "y": 0 },
-          "data": {
-            "label": "Node Label",
-            "color": "#hexcolor",
-            "shape": "default"
-          }
-        }
-      ],
-      "edges": [
-        {
-          "id": "edge_id",
-          "source": "source_node_id",
-          "target": "target_node_id"
-        }
-      ]
+      "label": "Short descriptive label",
+      "mermaid": "flowchart TD\\n  A[Start] --> B[End]"
     }
   ]
 }
 
-RULES:
-1. Generate exactly 2 or 3 variants with different layouts or structural approaches.
-2. Each variant must have a short, descriptive "label" (e.g., "Top-Down Architecture", "Left-to-Right Flow").
-3. Node IDs must be short, unique, lowercase strings (e.g., "auth", "db", "gw").
-4. Positions: Space nodes so they don't overlap. Use increments of ~200px for x, ~140px for y.
-5. Valid shapes: "default" (rectangle), "rounded" (pill), "diamond" (decision), "database" (cylinder), "table" (ERD table with fields).
-6. For "table" shape, add a "fields" array to data: ["🔑 id", "name", "email"].
-7. Colors: Use visually distinct hex colors. Good choices: "#c85a3a" (coral), "#0891b2" (teal), "#6366f1" (indigo), "#22c55e" (green), "#eab308" (amber), "#7c3aed" (purple), "#ef4444" (red), "#0e7490" (dark teal), "#dc2626" (crimson).
-8. Edge IDs must be unique strings (e.g., "e1", "e2").
-9. Optional edge properties: "label" (string), "animated" (boolean), "style" (object with "strokeDasharray").
-10. Your entire response must be parseable as JSON. No text before or after the JSON.
-11. Choose the most appropriate diagram structure based on the user's description:
-    - System architecture → nodes with services, databases, caches, queues
-    - Flowchart/process → nodes with start, steps, decisions, end
-    - ERD/database → table-shaped nodes with fields
-    - Pipeline → sequential stage nodes`
+Rules:
+1. Generate exactly 2 or 3 Mermaid variants.
+2. Each variant must include a short "label" and a complete Mermaid diagram string in "mermaid".
+3. Choose the Mermaid diagram type that best fits the request:
+   - system architecture, pipeline, flowchart -> flowchart
+   - sequence / interaction -> sequenceDiagram
+   - ERD / database schema -> erDiagram
+   - state machine -> stateDiagram-v2
+   - class relationships -> classDiagram
+4. Mermaid must be valid and self-contained.
+5. Do not wrap Mermaid in markdown fences.
+6. Prefer concise labels and readable node text.
+7. For system architecture and pipelines, use "flowchart LR" or "flowchart TD".
+8. For ERDs, use proper Mermaid "erDiagram" syntax.
+9. For sequence diagrams, use proper Mermaid "sequenceDiagram" syntax.
+10. Output JSON only. No prose before or after the JSON.`
 
-/**
- * Calls local Ollama to generate React Flow diagram JSON from a user prompt.
- *
- * @param {string} userPrompt — Natural language description of the diagram.
- * @returns {Promise<Array>} — Array of variant objects { label, nodes[], edges[] }.
- * @throws {Error} — If the API call fails or returns invalid data.
- */
-export async function generateDiagramJSON(userPrompt) {
+const REVISE_SYSTEM_PROMPT = `You revise Mermaid.js diagrams.
+
+Return ONLY valid JSON with this exact structure:
+{
+  "label": "Short descriptive label",
+  "mermaid": "flowchart TD\\n  A[Start] --> B[End]"
+}
+
+Rules:
+1. Keep the diagram in Mermaid syntax.
+2. Apply the edit instruction to the supplied Mermaid while preserving the original intent.
+3. Return exactly one revised diagram.
+4. Mermaid must be valid and self-contained.
+5. Do not wrap Mermaid in markdown fences.
+6. Output JSON only. No prose before or after the JSON.`
+
+function stripCodeFences(value) {
+  return String(value || '')
+    .replace(/^```(?:mermaid|json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim()
+}
+
+function looksLikeMermaid(text) {
+  return /^(flowchart|graph|sequenceDiagram|classDiagram|erDiagram|stateDiagram-v2|journey|mindmap|timeline|gitGraph|pie|quadrantChart|requirementDiagram)\b/i.test(
+    text.trim()
+  )
+}
+
+function getResponseText(data) {
+  let text = stripCodeFences(data.response || '')
+
+  if (!text && data.thinking) {
+    text = stripCodeFences(
+      typeof data.thinking === 'string' ? data.thinking : JSON.stringify(data.thinking)
+    )
+  }
+
+  if (!text) {
+    throw new Error('Ollama returned an empty response. Please try a different prompt.')
+  }
+
+  return text
+}
+
+function parsePayload(text) {
+  if (looksLikeMermaid(text)) {
+    return { mermaid: text }
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    const match = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
+    if (match) {
+      try {
+        return JSON.parse(match[0])
+      } catch {
+        throw new Error(
+          'Failed to parse Ollama response. The model did not return valid Mermaid JSON.'
+        )
+      }
+    }
+
+    throw new Error(
+      'Failed to parse Ollama response. The model did not return valid Mermaid JSON.'
+    )
+  }
+}
+
+function normalizeVariants(parsed) {
+  let variants
+
+  if (Array.isArray(parsed)) {
+    variants = parsed
+  } else if (Array.isArray(parsed.variants)) {
+    variants = parsed.variants
+  } else if (typeof parsed.mermaid === 'string' || typeof parsed.code === 'string') {
+    variants = [parsed]
+  } else if (parsed.action) {
+    throw new Error(
+      `The model returned an unsupported action payload (${parsed.action}) instead of Mermaid diagram code.`
+    )
+  } else {
+    throw new Error(
+      'Unexpected response structure from Ollama. Expected Mermaid variants in JSON.'
+    )
+  }
+
+  const normalized = variants
+    .map((variant, index) => {
+      const code = stripCodeFences(variant.mermaid || variant.code || variant.diagram || '')
+      if (!code || !looksLikeMermaid(code)) return null
+
+      return {
+        id: variant.id || `variant-${index + 1}`,
+        label: String(variant.label || `Variant ${index + 1}`).trim(),
+        code,
+      }
+    })
+    .filter(Boolean)
+
+  if (normalized.length === 0) {
+    throw new Error(
+      'Ollama responded, but it did not return valid Mermaid diagram variants.'
+    )
+  }
+
+  return normalized
+}
+
+async function requestOllama({ system, prompt }) {
   const baseUrl = import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434'
 
   const response = await fetch(`${baseUrl}/api/generate`, {
@@ -62,10 +148,13 @@ export async function generateDiagramJSON(userPrompt) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: OLLAMA_MODEL,
-      system: SYSTEM_PROMPT,
-      prompt: userPrompt,
+      system,
+      prompt,
       stream: false,
       format: 'json',
+      options: {
+        temperature: 0.2,
+      },
     }),
   })
 
@@ -78,79 +167,29 @@ export async function generateDiagramJSON(userPrompt) {
   }
 
   const data = await response.json()
-  // glm-4.7-flash may return JSON in `thinking` instead of `response`
-  let text = (data.response || '').trim()
-  if (!text && data.thinking) {
-    text = (typeof data.thinking === 'string' ? data.thinking : JSON.stringify(data.thinking)).trim()
-  }
+  return parsePayload(getResponseText(data))
+}
 
-  if (!text) {
-    throw new Error('Ollama returned an empty response. Please try a different prompt.')
-  }
+export async function generateDiagramVariants(userPrompt) {
+  const parsed = await requestOllama({
+    system: GENERATE_SYSTEM_PROMPT,
+    prompt: userPrompt,
+  })
 
-  // Strip markdown fences if present
-  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  return normalizeVariants(parsed)
+}
 
-  // Parse JSON
-  let parsed
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    // Try to extract JSON object from noisy output
-    const match = text.match(/\{[\s\S]*\}/)
-    if (match) {
-      try {
-        parsed = JSON.parse(match[0])
-      } catch {
-        throw new Error('Failed to parse Ollama response as JSON. The model returned invalid data.')
-      }
-    } else {
-      throw new Error('Failed to parse Ollama response as JSON. The model returned invalid data.')
-    }
-  }
+export async function reviseDiagramVariant(currentVariant, instruction) {
+  const parsed = await requestOllama({
+    system: REVISE_SYSTEM_PROMPT,
+    prompt: [
+      `Current diagram label: ${currentVariant.label || 'Untitled Diagram'}`,
+      'Current Mermaid diagram:',
+      currentVariant.code,
+      '',
+      `Edit instruction: ${instruction}`,
+    ].join('\n'),
+  })
 
-  // Normalize: accept { variants: [...] } or a direct array
-  let variants
-  if (Array.isArray(parsed)) {
-    variants = parsed
-  } else if (parsed.variants && Array.isArray(parsed.variants)) {
-    variants = parsed.variants
-  } else if (parsed.nodes && Array.isArray(parsed.nodes)) {
-    // Single variant returned as a flat object
-    variants = [{ label: 'Generated Diagram', ...parsed }]
-  } else {
-    throw new Error('Unexpected response structure from Ollama. Expected { variants: [...] }.')
-  }
-
-  // Validate each variant has required fields
-  for (const v of variants) {
-    if (!v.nodes || !Array.isArray(v.nodes)) v.nodes = []
-    if (!v.edges || !Array.isArray(v.edges)) v.edges = []
-    if (!v.label) v.label = 'Variant'
-
-    // Ensure each node has required fields
-    v.nodes = v.nodes.map((n, i) => ({
-      id: n.id || `node_${i}`,
-      type: 'custom',
-      position: n.position || { x: (i % 4) * 200, y: Math.floor(i / 4) * 140 },
-      data: {
-        label: n.data?.label || n.label || `Node ${i}`,
-        color: n.data?.color || n.color || '#c85a3a',
-        shape: n.data?.shape || n.shape || 'default',
-        ...(n.data?.fields ? { fields: n.data.fields } : {}),
-      },
-    }))
-
-    // Ensure each edge has required fields
-    v.edges = v.edges.map((e, i) => ({
-      id: e.id || `e${i}`,
-      source: e.source,
-      target: e.target,
-      ...(e.label ? { label: e.label } : {}),
-      ...(e.animated ? { animated: true } : {}),
-      ...(e.style ? { style: e.style } : {}),
-    })).filter((e) => e.source && e.target)
-  }
-
-  return variants
+  return normalizeVariants(parsed)[0]
 }

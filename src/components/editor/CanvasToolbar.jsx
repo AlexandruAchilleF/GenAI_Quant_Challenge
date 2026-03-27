@@ -1,41 +1,39 @@
+import { useState } from 'react'
 import { ThumbsUp, ThumbsDown, Star } from 'lucide-react'
 import useDiagramStore from '../../store/diagramStore'
 import usePreferencesStore from '../../store/preferencesStore'
-import { useState } from 'react'
 
 export default function CanvasToolbar() {
   const [liked, setLiked] = useState(false)
   const [disliked, setDisliked] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const getActiveVariant = useDiagramStore((s) => s.getActiveVariant)
-  const likeDiagram = usePreferencesStore((s) => s.likeDiagram)
-  const dislikeDiagram = usePreferencesStore((s) => s.dislikeDiagram)
+  const getActiveVariant = useDiagramStore((state) => state.getActiveVariant)
+  const likeDiagram = usePreferencesStore((state) => state.likeDiagram)
+  const dislikeDiagram = usePreferencesStore((state) => state.dislikeDiagram)
 
   const variant = getActiveVariant()
+
   if (!variant) return null
 
-  const handleLike = () => {
-    if (!liked) {
-      likeDiagram(variant)
-      setLiked(true)
-      setDisliked(false)
-    }
+  function handleLike() {
+    if (liked) return
+    likeDiagram(variant)
+    setLiked(true)
+    setDisliked(false)
   }
 
-  const handleDislike = () => {
-    if (!disliked) {
-      dislikeDiagram()
-      setDisliked(true)
-      setLiked(false)
-    }
+  function handleDislike() {
+    if (disliked) return
+    dislikeDiagram()
+    setDisliked(true)
+    setLiked(false)
   }
 
-  const handleSave = () => {
-    if (!saved) {
-      likeDiagram(variant)
-      setSaved(true)
-    }
+  function handleSave() {
+    if (saved) return
+    likeDiagram(variant)
+    setSaved(true)
   }
 
   return (

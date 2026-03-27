@@ -15,8 +15,8 @@ const features = [
   },
   {
     icon: Layers,
-    title: 'Interactive Canvas',
-    description: 'Drag, resize, and connect nodes on an infinite canvas. Fine-tune AI outputs with visual precision.',
+    title: 'Variant Comparison',
+    description: 'Generate multiple Mermaid variants for the same prompt, compare layouts side by side, and keep the one that communicates best.',
     iconBg: 'bg-success-400/20 text-success-500',
   },
   {
@@ -28,7 +28,7 @@ const features = [
   {
     icon: FileCode2,
     title: 'Code-First Option',
-    description: 'Switch between visual and code mode. Edit diagrams using Mermaid or custom DSL syntax.',
+    description: 'Generate Mermaid-native diagrams that stay readable, portable, and easy to refine with follow-up prompts.',
     iconBg: 'bg-error-400/20 text-error-500',
   },
   {

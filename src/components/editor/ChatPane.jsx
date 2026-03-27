@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Send, Sparkles, Trash2 } from 'lucide-react'
 import useChatStore from '../../store/chatStore'
 import useDiagramStore from '../../store/diagramStore'
-import usePreferencesStore from '../../store/preferencesStore'
 import { generateDiagram } from '../../services/aiService'
 import ChatMessage from './ChatMessage'
 import ThinkingBlock from './ThinkingBlock'
@@ -12,124 +11,97 @@ export default function ChatPane() {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
-  const messages = useChatStore((s) => s.messages)
-  const isThinking = useChatStore((s) => s.isThinking)
-  const currentThinkingSteps = useChatStore((s) => s.currentThinkingSteps)
-  const addUserMessage = useChatStore((s) => s.addUserMessage)
-  const addAIMessage = useChatStore((s) => s.addAIMessage)
-  const setThinking = useChatStore((s) => s.setThinking)
-  const addThinkingStep = useChatStore((s) => s.addThinkingStep)
-  const clearThinkingSteps = useChatStore((s) => s.clearThinkingSteps)
-  const clearMessages = useChatStore((s) => s.clearMessages)
+  const messages = useChatStore((state) => state.messages)
+  const isThinking = useChatStore((state) => state.isThinking)
+  const currentThinkingSteps = useChatStore((state) => state.currentThinkingSteps)
+  const addUserMessage = useChatStore((state) => state.addUserMessage)
+  const addAIMessage = useChatStore((state) => state.addAIMessage)
+  const setThinking = useChatStore((state) => state.setThinking)
+  const addThinkingStep = useChatStore((state) => state.addThinkingStep)
+  const clearThinkingSteps = useChatStore((state) => state.clearThinkingSteps)
+  const clearMessages = useChatStore((state) => state.clearMessages)
 
-  const setVariants = useDiagramStore((s) => s.setVariants)
-  const setGenerating = useDiagramStore((s) => s.setGenerating)
-  const getActiveVariant = useDiagramStore((s) => s.getActiveVariant)
-  const updateNodeLabel = useDiagramStore((s) => s.updateNodeLabel)
-  const updateNodeData = useDiagramStore((s) => s.updateNodeData)
-  const removeNode = useDiagramStore((s) => s.removeNode)
+  const setVariants = useDiagramStore((state) => state.setVariants)
+  const setGenerating = useDiagramStore((state) => state.setGenerating)
+  const getActiveVariant = useDiagramStore((state) => state.getActiveVariant)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, currentThinkingSteps])
 
-  const handleSend = useCallback(
-    (text) => {
-      const content = (text || input).trim()
-      if (!content || isThinking) return
+  function handleSend(text) {
+    const content = (text || input).trim()
+    if (!content || isThinking) return
 
-      addUserMessage(content)
-      setInput('')
-      setThinking(true)
-      setGenerating(true)
-      clearThinkingSteps()
+    const currentVariant = getActiveVariant()
 
-      generateDiagram(content, {
-        onThinkingStep: (step) => {
-          addThinkingStep(step)
-        },
+    addUserMessage(content)
+    setInput('')
+    setThinking(true)
+    setGenerating(true)
+    clearThinkingSteps()
 
-        onComplete: (variants, thinkingSteps) => {
-          setVariants(variants)
-          setGenerating(false)
+    generateDiagram(content, {
+      currentVariant,
+      onThinkingStep: (step) => {
+        addThinkingStep(step)
+      },
+
+      onComplete: (variants, thinkingSteps, { mode }) => {
+        setGenerating(false)
+
+        if (mode === 'edit' && currentVariant) {
+          const originalVariant = {
+            ...currentVariant,
+            label: currentVariant.label
+              ? `${currentVariant.label} (Original)`
+              : 'Original Diagram',
+          }
+          const revisedVariants = [originalVariant, ...variants]
+          setVariants(revisedVariants, Math.min(1, revisedVariants.length - 1))
           addAIMessage(
-            `I've generated ${variants.length} variant${variants.length > 1 ? 's' : ''} for your diagram. Use the tabs above the canvas to compare them.`,
+            'I revised the Mermaid diagram and kept the original as Variant A so you can compare the result.',
             { thinkingSteps }
           )
-        },
+          return
+        }
 
-        onDisambiguate: (questions) => {
-          setThinking(false)
-          setGenerating(false)
-          addAIMessage(
-            'Your prompt is a bit broad. Let me ask a few clarifying questions to give you the best result.',
-            { quickReplies: questions }
-          )
-        },
+        setVariants(variants, 0)
+        addAIMessage(
+          `I've generated ${variants.length} Mermaid variant${variants.length > 1 ? 's' : ''} for your diagram. Use the tabs above the preview to compare them.`,
+          { thinkingSteps }
+        )
+      },
 
-        onEdit: (cmd) => {
-          setThinking(false)
-          setGenerating(false)
-          const variant = getActiveVariant()
-          if (!variant) {
-            addAIMessage('No diagram to edit yet. Generate one first!')
-            return
-          }
+      onDisambiguate: (questions) => {
+        setThinking(false)
+        setGenerating(false)
+        addAIMessage(
+          'Your prompt is a bit broad. Let me ask a few clarifying questions to give you the best result.',
+          { quickReplies: questions }
+        )
+      },
 
-          if (cmd.type === 'rename') {
-            const node = variant.nodes.find(
-              (n) => n.data.label.toLowerCase().includes(cmd.target)
-            )
-            if (node) {
-              updateNodeLabel(node.id, cmd.newValue.charAt(0).toUpperCase() + cmd.newValue.slice(1))
-              addAIMessage(`Done! Renamed "${node.data.label}" to "${cmd.newValue}".`)
-            } else {
-              addAIMessage(`I couldn't find a node matching "${cmd.target}". Try the exact label name.`)
-            }
-          } else if (cmd.type === 'recolor') {
-            const node = variant.nodes.find(
-              (n) => n.data.label.toLowerCase().includes(cmd.target)
-            )
-            if (node) {
-              updateNodeData(node.id, { color: cmd.color })
-              addAIMessage(`Updated the color of "${node.data.label}".`)
-            } else {
-              addAIMessage(`I couldn't find a node matching "${cmd.target}".`)
-            }
-          } else if (cmd.type === 'remove') {
-            const node = variant.nodes.find(
-              (n) => n.data.label.toLowerCase().includes(cmd.target)
-            )
-            if (node) {
-              removeNode(node.id)
-              addAIMessage(`Removed "${node.data.label}" from the diagram.`)
-            } else {
-              addAIMessage(`I couldn't find a node matching "${cmd.target}".`)
-            }
-          }
-        },
-      })
-    },
-    [input, isThinking]
-  )
+      onError: (error, thinkingSteps) => {
+        setGenerating(false)
+        addAIMessage(error.message, { thinkingSteps })
+      },
+    })
+  }
 
-  const handleQuickReply = useCallback(
-    (reply) => {
-      handleSend(reply)
-    },
-    [handleSend]
-  )
+  function handleQuickReply(reply) {
+    handleSend(reply)
+  }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
+  function handleKeyDown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
       handleSend()
     }
   }
 
   return (
     <div className="flex flex-col h-full bg-surface-100/50">
-      {/* Header */}
       <div className="h-12 flex items-center justify-between px-4 border-b border-surface-300 flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center">
@@ -148,7 +120,6 @@ export default function ChatPane() {
         )}
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full px-6 text-center">
@@ -157,38 +128,39 @@ export default function ChatPane() {
             </div>
             <h3 className="text-sm font-semibold text-surface-600 mb-1">Ask me anything</h3>
             <p className="text-xs text-surface-400 max-w-[240px]">
-              Describe your diagram or ask me to edit the current one. I'll generate multiple variants for you.
+              Describe your diagram or ask me to revise the current Mermaid version. I&apos;ll generate multiple variants for you.
             </p>
 
-            {/* Quick prompts */}
             <div className="mt-6 space-y-1.5 w-full">
               {[
                 'Microservices architecture with API Gateway',
                 'User authentication flow with 2FA',
                 'E-commerce ERD schema',
                 'CI/CD pipeline: Build → Test → Deploy',
-              ].map((qp) => (
+              ].map((quickPrompt) => (
                 <button
-                  key={qp}
-                  onClick={() => { setInput(qp); handleSend(qp) }}
+                  key={quickPrompt}
+                  onClick={() => {
+                    setInput(quickPrompt)
+                    handleSend(quickPrompt)
+                  }}
                   className="w-full text-left px-3 py-2 rounded-lg text-xs text-surface-600 hover:text-surface-900 hover:bg-surface-200 transition-all border border-surface-200 hover:border-surface-300"
                 >
-                  {qp}
+                  {quickPrompt}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {messages.map((msg) => (
+        {messages.map((message) => (
           <ChatMessage
-            key={msg.id}
-            message={msg}
+            key={message.id}
+            message={message}
             onQuickReply={handleQuickReply}
           />
         ))}
 
-        {/* Live thinking stream */}
         {isThinking && currentThinkingSteps.length > 0 && (
           <div className="px-4 py-3 bg-primary-50/50">
             <ThinkingBlock steps={currentThinkingSteps} isStreaming={true} />
@@ -198,15 +170,14 @@ export default function ChatPane() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="p-3 border-t border-surface-300 flex-shrink-0">
         <div className="flex gap-2">
           <input
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isThinking ? 'Thinking…' : 'Describe your diagram or edit...'}
+            placeholder={isThinking ? 'Thinking…' : 'Describe your diagram or revise it...'}
             disabled={isThinking}
             className="flex-1 bg-white border border-surface-300 rounded-xl px-3 py-2.5 text-sm text-surface-900 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all disabled:opacity-50"
           />
@@ -219,7 +190,7 @@ export default function ChatPane() {
           </button>
         </div>
         <p className="text-[10px] text-surface-400 mt-1.5 px-1">
-          Press <kbd className="px-1 py-0.5 bg-surface-200 rounded text-surface-500 font-mono text-[9px]">Enter</kbd> to send · Try "rename X to Y" or "make X blue"
+          Press <kbd className="px-1 py-0.5 bg-surface-200 rounded text-surface-500 font-mono text-[9px]">Enter</kbd> to send · Try &quot;rename API Gateway to BFF&quot; or &quot;remove Redis&quot;
         </p>
       </div>
     </div>

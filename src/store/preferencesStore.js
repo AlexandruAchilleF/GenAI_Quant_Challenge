@@ -8,46 +8,41 @@ const usePreferencesStore = create(
       dislikedCount: 0,
 
       likeDiagram: (variant) => {
+        if (!variant?.code) return
+
         const entry = {
           id: `liked-${Date.now()}`,
           timestamp: Date.now(),
-          nodes: variant.nodes.map((n) => ({
-            type: n.type,
-            color: n.data?.color,
-            shape: n.data?.shape,
-          })),
-          edges: variant.edges.length,
-          layoutDirection: detectLayoutDirection(variant.nodes),
-          dominantColors: extractDominantColors(variant.nodes),
-          nodeCount: variant.nodes.length,
+          label: variant.label || 'Untitled Diagram',
+          code: variant.code,
+          diagramType: detectDiagramType(variant.code),
+          lineCount: countMeaningfulLines(variant.code),
         }
-        set((s) => ({ likedDiagrams: [...s.likedDiagrams, entry].slice(-20) }))
+
+        set((state) => ({
+          likedDiagrams: [...state.likedDiagrams, entry].slice(-20),
+        }))
       },
 
       dislikeDiagram: () => {
-        set((s) => ({ dislikedCount: s.dislikedCount + 1 }))
+        set((state) => ({ dislikedCount: state.dislikedCount + 1 }))
       },
 
       getStyleSummary: () => {
         const { likedDiagrams } = get()
         if (likedDiagrams.length === 0) return null
 
-        const directions = likedDiagrams.map((d) => d.layoutDirection)
-        const preferredDirection = mode(directions)
-
-        const allColors = likedDiagrams.flatMap((d) => d.dominantColors)
-        const preferredColors = [...new Set(allColors)].slice(0, 3)
-
-        const avgNodes = Math.round(
-          likedDiagrams.reduce((sum, d) => sum + d.nodeCount, 0) / likedDiagrams.length
+        const preferredType = mode(likedDiagrams.map((diagram) => diagram.diagramType))
+        const averageLineCount = Math.round(
+          likedDiagrams.reduce((sum, diagram) => sum + diagram.lineCount, 0) /
+            likedDiagrams.length
         )
 
         return {
-          preferredDirection,
-          preferredColors,
-          avgNodeCount: avgNodes,
+          preferredType,
+          averageLineCount,
           totalLiked: likedDiagrams.length,
-          summary: `User prefers ${preferredDirection} layouts with ${preferredColors.join(', ')} as primary colors. Average diagram complexity: ${avgNodes} nodes.`,
+          summary: `User prefers ${preferredType} Mermaid diagrams with about ${averageLineCount} meaningful lines on average.`,
         }
       },
 
@@ -57,31 +52,39 @@ const usePreferencesStore = create(
   )
 )
 
-// --- Helpers ---
-function detectLayoutDirection(nodes) {
-  if (!nodes || nodes.length < 2) return 'top-down'
-  const positions = nodes.map((n) => n.position || { x: 0, y: 0 })
-  const xSpread = Math.max(...positions.map((p) => p.x)) - Math.min(...positions.map((p) => p.x))
-  const ySpread = Math.max(...positions.map((p) => p.y)) - Math.min(...positions.map((p) => p.y))
-  return ySpread >= xSpread ? 'top-down' : 'left-right'
+function detectDiagramType(code) {
+  const firstMeaningfulLine = code
+    .split('\n')
+    .map((line) => line.trim())
+    .find(Boolean)
+
+  if (!firstMeaningfulLine) return 'unknown'
+  if (firstMeaningfulLine.startsWith('flowchart') || firstMeaningfulLine.startsWith('graph')) {
+    return 'flowchart'
+  }
+  if (firstMeaningfulLine.startsWith('sequenceDiagram')) return 'sequence'
+  if (firstMeaningfulLine.startsWith('erDiagram')) return 'erd'
+  if (firstMeaningfulLine.startsWith('stateDiagram-v2')) return 'state'
+  if (firstMeaningfulLine.startsWith('classDiagram')) return 'class'
+  return 'other'
 }
 
-function extractDominantColors(nodes) {
-  const colors = nodes
-    .map((n) => n.data?.color)
-    .filter(Boolean)
-  const freq = {}
-  colors.forEach((c) => (freq[c] = (freq[c] || 0) + 1))
-  return Object.entries(freq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([c]) => c)
+function countMeaningfulLines(code) {
+  return code
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean).length
 }
 
-function mode(arr) {
-  const freq = {}
-  arr.forEach((v) => (freq[v] = (freq[v] || 0) + 1))
-  return Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || 'top-down'
+function mode(values) {
+  const frequency = {}
+  values.forEach((value) => {
+    frequency[value] = (frequency[value] || 0) + 1
+  })
+
+  return (
+    Object.entries(frequency).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown'
+  )
 }
 
 export default usePreferencesStore
