@@ -15,192 +15,49 @@ import {
   PanelLeft,
   Trash2,
   Copy,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react'
-
-/* ── Mock AI diagram generation ── */
-const DIAGRAM_TEMPLATES = {
-  default: {
-    nodes: [
-      { id: 'gw', label: 'API Gateway', x: 220, y: 40, color: '#4f46e5', w: 140, h: 44 },
-      { id: 'auth', label: 'Auth Service', x: 60, y: 150, color: '#0891b2', w: 130, h: 44 },
-      { id: 'user', label: 'User Service', x: 230, y: 150, color: '#0891b2', w: 130, h: 44 },
-      { id: 'order', label: 'Order Service', x: 400, y: 150, color: '#0891b2', w: 130, h: 44 },
-      { id: 'db', label: 'PostgreSQL', x: 210, y: 280, color: '#0e7490', w: 140, h: 44, isDB: true },
-    ],
-    edges: [
-      { from: 'gw', to: 'auth' },
-      { from: 'gw', to: 'user' },
-      { from: 'gw', to: 'order' },
-      { from: 'auth', to: 'db', dashed: true },
-      { from: 'user', to: 'db', dashed: true },
-      { from: 'order', to: 'db', dashed: true },
-    ],
-  },
-  flow: {
-    nodes: [
-      { id: 'start', label: 'Start', x: 240, y: 20, color: '#4f46e5', w: 100, h: 40, rounded: true },
-      { id: 'input', label: 'User Input', x: 220, y: 90, color: '#0891b2', w: 140, h: 44 },
-      { id: 'validate', label: 'Validate?', x: 230, y: 170, color: '#eab308', w: 120, h: 44, diamond: true },
-      { id: 'process', label: 'Process Data', x: 220, y: 260, color: '#0891b2', w: 140, h: 44 },
-      { id: 'error', label: 'Show Error', x: 430, y: 170, color: '#ef4444', w: 120, h: 44 },
-      { id: 'end', label: 'Done', x: 240, y: 340, color: '#22c55e', w: 100, h: 40, rounded: true },
-    ],
-    edges: [
-      { from: 'start', to: 'input' },
-      { from: 'input', to: 'validate' },
-      { from: 'validate', to: 'process', label: 'Yes' },
-      { from: 'validate', to: 'error', label: 'No' },
-      { from: 'process', to: 'end' },
-      { from: 'error', to: 'input', dashed: true },
-    ],
-  },
-  erd: {
-    nodes: [
-      { id: 'users', label: 'Users', x: 40, y: 60, color: '#4f46e5', w: 140, h: 110, isTable: true, fields: ['🔑 id', 'name', 'email', 'created_at'] },
-      { id: 'orders', label: 'Orders', x: 240, y: 60, color: '#0891b2', w: 140, h: 110, isTable: true, fields: ['🔑 id', '🔗 user_id', 'total', 'status'] },
-      { id: 'products', label: 'Products', x: 440, y: 60, color: '#7c3aed', w: 140, h: 110, isTable: true, fields: ['🔑 id', 'name', 'price', '🔗 category_id'] },
-    ],
-    edges: [
-      { from: 'users', to: 'orders', label: '1:N' },
-      { from: 'orders', to: 'products', label: 'N:M' },
-    ],
-  },
-}
-
-function detectTemplate(prompt) {
-  const lower = prompt.toLowerCase()
-  if (lower.includes('flow') || lower.includes('process') || lower.includes('step'))
-    return 'flow'
-  if (lower.includes('erd') || lower.includes('table') || lower.includes('database') || lower.includes('entity'))
-    return 'erd'
-  return 'default'
-}
-
-/* ── Canvas Renderer ── */
-function DiagramCanvas({ diagram, zoom, panOffset }) {
-  if (!diagram) return null
-  const { nodes, edges } = diagram
-
-  const getCenter = (node) => ({
-    x: node.x + (node.w || 120) / 2,
-    y: node.y + (node.h || 44) / 2,
-  })
-
-  return (
-    <g transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoom})`}>
-      {/* Edges */}
-      {edges.map((edge, i) => {
-        const fromNode = nodes.find(n => n.id === edge.from)
-        const toNode = nodes.find(n => n.id === edge.to)
-        if (!fromNode || !toNode) return null
-        const from = getCenter(fromNode)
-        const to = getCenter(toNode)
-        return (
-          <g key={`edge-${i}`}>
-            <line
-              x1={from.x} y1={from.y + (fromNode.h || 44) / 2}
-              x2={to.x} y2={to.y - (toNode.h || 44) / 2}
-              stroke={edge.dashed ? '#22d3ee' : '#6366f1'}
-              strokeWidth="2"
-              opacity="0.5"
-              strokeDasharray={edge.dashed ? '6 4' : 'none'}
-            />
-            {edge.label && (
-              <text
-                x={(from.x + to.x) / 2 + 10}
-                y={(from.y + (fromNode.h || 44) / 2 + to.y - (toNode.h || 44) / 2) / 2}
-                fill="#94a3b8"
-                fontSize="10"
-                fontFamily="Inter, sans-serif"
-              >
-                {edge.label}
-              </text>
-            )}
-          </g>
-        )
-      })}
-
-      {/* Nodes */}
-      {nodes.map((node) => {
-        if (node.isTable) {
-          return (
-            <g key={node.id}>
-              <rect
-                x={node.x} y={node.y}
-                width={node.w} height={node.h}
-                rx="8" fill="#1e293b" stroke={node.color} strokeWidth="1.5"
-              />
-              <rect x={node.x} y={node.y} width={node.w} height="28" rx="8" fill={node.color} />
-              <rect x={node.x} y={node.y + 20} width={node.w} height="8" fill={node.color} />
-              <text x={node.x + node.w / 2} y={node.y + 19} textAnchor="middle" fill="white" fontSize="11" fontFamily="Inter" fontWeight="700">{node.label}</text>
-              {node.fields?.map((f, i) => (
-                <text key={i} x={node.x + 12} y={node.y + 46 + i * 16} fill="#94a3b8" fontSize="9" fontFamily="Inter">{f}</text>
-              ))}
-            </g>
-          )
-        }
-
-        if (node.diamond) {
-          const cx = node.x + node.w / 2
-          const cy = node.y + node.h / 2
-          return (
-            <g key={node.id}>
-              <polygon
-                points={`${cx},${node.y} ${node.x + node.w},${cy} ${cx},${node.y + node.h} ${node.x},${cy}`}
-                fill="#1e293b" stroke={node.color} strokeWidth="1.5"
-              />
-              <text x={cx} y={cy + 4} textAnchor="middle" fill={node.color} fontSize="10" fontFamily="Inter" fontWeight="600">{node.label}</text>
-            </g>
-          )
-        }
-
-        return (
-          <g key={node.id}>
-            <rect
-              x={node.x} y={node.y}
-              width={node.w || 120} height={node.h || 44}
-              rx={node.rounded ? 22 : 10}
-              fill={node.color} opacity="0.9"
-            />
-            <text
-              x={node.x + (node.w || 120) / 2}
-              y={node.y + (node.h || 44) / 2 + 4}
-              textAnchor="middle" fill="white"
-              fontSize="12" fontFamily="Inter, sans-serif" fontWeight="600"
-            >
-              {node.label}
-            </text>
-          </g>
-        )
-      })}
-    </g>
-  )
-}
+import { generateMermaidDiagram } from '../lib/gemini'
+import MermaidRenderer from '../components/MermaidRenderer'
 
 /* ── Editor Page ── */
 export default function EditorPage() {
   const [prompt, setPrompt] = useState('')
-  const [diagram, setDiagram] = useState(null)
+  const [mermaidDiagramCode, setMermaidDiagramCode] = useState(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [renderError, setRenderError] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [zoom, setZoom] = useState(1)
-  const [panOffset] = useState({ x: 0, y: 0 })
   const [history, setHistory] = useState([])
   const textareaRef = useRef(null)
 
-  const handleGenerate = useCallback(() => {
-    if (!prompt.trim()) return
-    setIsGenerating(true)
+  const handleGenerate = useCallback(async () => {
+    if (!prompt.trim() || isGenerating) return
 
-    // Simulate AI generation delay
-    setTimeout(() => {
-      const templateKey = detectTemplate(prompt)
-      const template = DIAGRAM_TEMPLATES[templateKey]
-      setDiagram({ ...template })
+    setIsGenerating(true)
+    setRenderError(null)
+
+    try {
+      const mermaidCode = await generateMermaidDiagram(prompt)
+      setMermaidDiagramCode(mermaidCode)
       setHistory(prev => [...prev, prompt])
+    } catch (err) {
+      console.error('Generation failed:', err)
+      setRenderError(
+        err.message || 'Failed to generate diagram. Please try again with a different prompt.'
+      )
+      setMermaidDiagramCode(null)
+    } finally {
       setIsGenerating(false)
-    }, 1500 + Math.random() * 1000)
-  }, [prompt])
+    }
+  }, [prompt, isGenerating])
+
+  const handleMermaidError = useCallback((errorMessage) => {
+    setRenderError(
+      `Failed to render diagram: the AI generated invalid syntax. Please tweak your prompt and try again.\n\nDetails: ${errorMessage}`
+    )
+  }, [])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -210,8 +67,12 @@ export default function EditorPage() {
   }
 
   const handleExport = () => {
-    const svgElement = document.getElementById('diagram-canvas')
+    // Grab the rendered Mermaid SVG from the DOM
+    const mermaidOutput = document.getElementById('mermaid-output')
+    if (!mermaidOutput) return
+    const svgElement = mermaidOutput.querySelector('svg')
     if (!svgElement) return
+
     const svgData = new XMLSerializer().serializeToString(svgElement)
     const blob = new Blob([svgData], { type: 'image/svg+xml' })
     const url = URL.createObjectURL(blob)
@@ -266,7 +127,7 @@ export default function EditorPage() {
           <button
             id="export-btn"
             onClick={handleExport}
-            disabled={!diagram}
+            disabled={!mermaidDiagramCode}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-surface-800 text-surface-300 hover:bg-surface-700 hover:text-white"
           >
             <Download className="w-4 h-4" />
@@ -293,7 +154,7 @@ export default function EditorPage() {
             sidebarOpen ? 'w-96' : 'w-0'
           } flex-shrink-0 border-r border-surface-800 bg-surface-900/50 transition-all duration-300 overflow-hidden flex flex-col`}
         >
-          <div className="p-5 flex-1 flex flex-col min-w-[384px]">
+          <div className="p-5 flex-1 flex flex-col min-w-[384px] overflow-y-auto">
             {/* Prompt input */}
             <div className="mb-4">
               <label htmlFor="prompt-input" className="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-3 block">
@@ -355,9 +216,30 @@ export default function EditorPage() {
               </div>
             </div>
 
+            {/* Mermaid code preview */}
+            {mermaidDiagramCode && !renderError && (
+              <div className="mt-6">
+                <div className="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-3 flex items-center justify-between">
+                  Generated Mermaid Code
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(mermaidDiagramCode)
+                    }}
+                    className="text-surface-600 hover:text-surface-400 transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <pre className="bg-surface-800/50 border border-surface-700 rounded-xl px-4 py-3 text-xs text-surface-400 font-mono overflow-x-auto max-h-40 overflow-y-auto whitespace-pre-wrap">
+                  {mermaidDiagramCode}
+                </pre>
+              </div>
+            )}
+
             {/* History */}
             {history.length > 0 && (
-              <div className="mt-6 flex-1 overflow-auto">
+              <div className="mt-6 flex-1">
                 <div className="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-3 flex items-center justify-between">
                   History
                   <button onClick={() => setHistory([])} className="text-surface-600 hover:text-surface-400 transition-colors">
@@ -393,18 +275,39 @@ export default function EditorPage() {
           />
 
           {/* Diagram layer */}
-          {diagram ? (
-            <svg
-              id="diagram-canvas"
-              className="w-full h-full"
-              viewBox="0 0 650 400"
-              preserveAspectRatio="xMidYMid meet"
-            >
-              <DiagramCanvas diagram={diagram} zoom={zoom} panOffset={panOffset} />
-            </svg>
-          ) : (
-            /* Empty state */
-            <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            className="absolute inset-0 overflow-auto flex items-center justify-center"
+            style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+          >
+            {mermaidDiagramCode && !renderError ? (
+              <MermaidRenderer code={mermaidDiagramCode} onError={handleMermaidError} />
+            ) : renderError ? (
+              /* Error state */
+              <div className="flex items-center justify-center p-8">
+                <div className="text-center animate-fade-in max-w-md">
+                  <div className="w-16 h-16 rounded-2xl bg-error-500/10 flex items-center justify-center mx-auto mb-5">
+                    <AlertTriangle className="w-8 h-8 text-error-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-surface-300 mb-2">
+                    Diagram Generation Failed
+                  </h3>
+                  <p className="text-surface-500 text-sm mb-6 leading-relaxed whitespace-pre-line">
+                    {renderError}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setRenderError(null)
+                      handleGenerate()
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-500 transition-all"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Empty state */
               <div className="text-center animate-fade-in">
                 <div className="w-20 h-20 rounded-2xl bg-surface-800/50 flex items-center justify-center mx-auto mb-6">
                   <Sparkles className="w-10 h-10 text-surface-700" />
@@ -414,8 +317,8 @@ export default function EditorPage() {
                   Write a prompt in the sidebar and click <strong>Generate</strong> to create your first AI-powered diagram.
                 </p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Loading overlay */}
           {isGenerating && (
