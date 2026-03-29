@@ -2,6 +2,14 @@
 
 DiagramAI is a Vite + React application for generating Mermaid diagrams from natural language prompts. It pairs a conversational editor with local Ollama inference, renders diagram variants in Mermaid.js, supports follow-up edit prompts, and includes a styled landing page with mock authentication and theme switching.
 
+
+##Team members
+App built for LSEG Bucharest - GenAI Quant Challenge. 
+Chelu Radu Andrei - https://github.com/shers0a
+Flueraru Alexandru Achille - https://github.com/AlexandruAchilleF
+Gaina David - https://github.com/DavidVamaiotu
+Rusanescu Gabriel - https://github.com/gabrielrusanescu
+
 ## What The App Does Today
 
 - Generates 2-3 Mermaid variants from a user prompt through a local Ollama instance.
